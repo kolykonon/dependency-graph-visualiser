@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dependency-graph-visualiser/src/analyzer"
 	"dependency-graph-visualiser/src/params"
 	"fmt"
 	"os"
@@ -24,4 +25,11 @@ func main() {
 		return
 	}
 	fmt.Printf("name: %s\nurl: %s\nmode: %s\nfilename: %s\n", params.Name, params.URL, params.Mode, params.Filename)
+
+	dep, err := analyzer.FindDependencies(params.Name,params.URL)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("Dependencies: %s\n", dep)
+	
 }
