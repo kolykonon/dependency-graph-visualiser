@@ -11,7 +11,9 @@ type WorkMode string
 var (
 	NameValidationError     = errors.New("Name validation failed")
 	URLValidationError      = errors.New("URL validation failed")
-	WorkModeValidationError = errors.New("Restricted value to param: work_mode, appropriate values: testing, production")
+	WorkModeValidationError = errors.New(
+		"Restricted value to param: work_mode, appropriate values: testing, production",
+	)
 	FilenameValidationError = errors.New("Restricted name of file")
 	PathValidationError     = errors.New("Path validation failed")
 )
@@ -26,8 +28,10 @@ const (
 var (
 	nameRegex     = regexp.MustCompile(`^[a-z0-9][a-z0-9+.-]*$`)
 	testNameRegex = regexp.MustCompile(`^[A-Z]$`)
-	urlRegex      = regexp.MustCompile(`^https?://[^/\s]+/ubuntu/dists/[a-z][a-z0-9.-]*/(main|universe|restricted|multiverse)/binary-[a-z0-9-]+/Packages(\.gz)?$`)
-	filenameRegex = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*\.png$`)
+	urlPattern    = `^https?://[^/\s]+/ubuntu/dists/[a-z][a-z0-9.-]*/` +
+		`(main|universe|restricted|multiverse)/binary-[a-z0-9-]+/Packages(\.gz)?$`
+	urlRegex      = regexp.MustCompile(urlPattern)
+	filenameRegex = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*\.svg$`)
 	pathRegex     = regexp.MustCompile(`^(/[^/]+)+/?$`)
 )
 
@@ -39,10 +43,17 @@ type Params struct {
 }
 
 func validateName(name string, mode WorkMode) (string, error) {
-	if (mode == WorkModeTesting && testNameRegex.MatchString(name)) || (mode == WorkModeProduction && nameRegex.MatchString(name)) {
+	if isValidName(name, mode) {
 		return name, nil
 	}
 	return "", NameValidationError
+}
+
+func isValidName(name string, mode WorkMode) bool {
+	if mode == WorkModeTesting {
+		return testNameRegex.MatchString(name)
+	}
+	return mode == WorkModeProduction && nameRegex.MatchString(name)
 }
 
 func validateURL(value string, mode WorkMode) (string, error) {

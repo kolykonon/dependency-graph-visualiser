@@ -9,3 +9,5 @@
 *.dll
 *.dylib
 data
+*.svg
+*.puml

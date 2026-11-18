@@ -1,3 +1,4 @@
+// Command visualiser builds and renders a package dependency graph.
 package main
 
 import (
@@ -6,49 +7,72 @@ import (
 	"dependency-graph-visualiser/src/params"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
+const argumentCount = 4
+
 func main() {
-	args := os.Args[1:]
-	if len(args) != 4 {
-		fmt.Fprintln(os.Stderr, "Incorrect arguments quantity")
-		return
+	if err := run(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
-	configuration, err := params.NewParams(
-		args[0],
-		args[1],
-		args[2],
-		args[3],
-	)
+}
+
+func run(args []string) error {
+	if len(args) != argumentCount {
+		return fmt.Errorf("usage: visualiser <package> <repository> <mode> <output.svg>")
+	}
+	configuration, err := params.NewParams(args[0], args[1], args[2], args[3])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		return
+		return err
 	}
-	var graph builder.Graph
+	result, err := buildGraph(configuration)
+	if err != nil {
+		return err
+	}
+	return writeOutput(result, configuration.Filename)
+}
+
+func buildGraph(configuration *params.Params) (builder.Result, error) {
+	graph, err := loadGraph(configuration)
+	if err != nil {
+		return builder.Result{}, err
+	}
+	return builder.BuildReachable(graph, configuration.Name)
+}
+
+func loadGraph(configuration *params.Params) (builder.Graph, error) {
 	if configuration.Mode == params.WorkModeTesting {
-		graph, err = analyzer.LoadTestRepository(configuration.URL)
-	} else {
-		graph, err = analyzer.LoadProductionRepository(configuration.URL)
+		return analyzer.LoadTestRepository(configuration.URL)
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	return analyzer.LoadProductionRepository(configuration.URL)
+}
+
+func writeOutput(result builder.Result, svgFilename string) error {
+	plantUMLFilename := plantUMLFilename(svgFilename)
+	if err := result.WritePlantUML(plantUMLFilename); err != nil {
+		return err
 	}
-	result, err := builder.BuildReachable(graph, configuration.Name)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	if err := result.RenderSVG(svgFilename); err != nil {
+		return err
 	}
-	fmt.Print(result.DOT())
-	if len(result.Cycles) == 0 {
+	fmt.Print(result.PlantUML())
+	printCycles(result.Cycles)
+	fmt.Printf("PlantUML: %s\nGraph image: %s\n", plantUMLFilename, svgFilename)
+	return nil
+}
+
+func plantUMLFilename(svgFilename string) string {
+	baseName := svgFilename[:len(svgFilename)-len(filepath.Ext(svgFilename))]
+	return baseName + ".puml"
+}
+
+func printCycles(cycles [][]string) {
+	if len(cycles) == 0 {
 		fmt.Println("Cycles: none")
+		return
 	}
-	for _, cycle := range result.Cycles {
+	for _, cycle := range cycles {
 		fmt.Printf("Cycle: %v\n", cycle)
 	}
-	if err := result.RenderPNG(configuration.Filename); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	fmt.Printf("Graph image: %s\n", configuration.Filename)
 }

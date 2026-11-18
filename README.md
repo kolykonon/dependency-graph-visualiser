@@ -15,13 +15,14 @@ D: A
 E:
 ```
 
-Запуск: `go run ./src/cmd/visualiser A /absolute/path/to/repository.txt testing graph.png`.
+Запуск: `go run ./src/cmd/visualiser A /absolute/path/to/repository.txt testing graph.svg`.
 Программа строит только достижимый из начального пакета граф, использует
-итеративный DFS, выводит его в формате DOT, сообщает найденные циклы и
-сохраняет PNG через Graphviz (`dot`).
+итеративный DFS, выводит его в формате PlantUML, сообщает найденные циклы и
+сохраняет SVG.
 
-Для сохранения PNG Graphviz должен быть установлен и команда `dot` должна
-быть доступна в `PATH`.
+Рядом с SVG сохраняется исходный файл PlantUML с расширением `.puml`.
+Изображение формируется программой и не требует установленного Graphviz или
+PlantUML.
 
 Готовые демонстрационные входные данные: `examples/acyclic.txt` и
 `examples/cyclic.txt`.
@@ -29,3 +30,23 @@ E:
 В рабочем режиме параметр вместо пути принимает URL файла `Packages.gz`.
 Зависимости извлекаются из всех записей архива; для альтернативы `A | B`
 выбирается первый пакет `A`.
+
+### Демонстрация визуализации
+
+В `examples/three_packages.txt` находятся три независимых примера. Запуск:
+```
+go run ./src/cmd/visualiser A "$PWD/examples/three_packages.txt" testing package-a.svg
+go run ./src/cmd/visualiser F "$PWD/examples/three_packages.txt" testing package-f.svg
+go run ./src/cmd/visualiser K "$PWD/examples/three_packages.txt" testing package-k.svg
+```
+
+`A` показывает транзитивную цепочку и разветвление, `F` — цикл `F → G → H → F`,
+`K` — пакет с тремя прямыми зависимостями.
+
+### Сравнение с APT
+
+Для Debian/Ubuntu штатная команда `apt-cache depends <пакет>` выводит прямые
+зависимости. Программа строит транзитивный граф, поэтому SVG включает вершины
+второго и следующих уровней. APT отдельно отображает альтернативы (`A | B`) и
+отношения `Recommends` и `Suggests`; программа использует только `Depends` и
+выбирает первый пакет альтернативы. Этим объясняются расхождения в выводе.
