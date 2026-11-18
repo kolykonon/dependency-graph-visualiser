@@ -14,6 +14,26 @@ func LoadTestRepository(path string) (builder.Graph, error) {
 		return nil, fmt.Errorf("open test repository: %w", err)
 	}
 	defer file.Close()
+
+	if graph, err := buildGraphTest(file); err != nil {
+		return nil, err
+	} else {
+	return graph, nil
+	}
+}
+
+func fixRepositoryDependencies (graph builder.Graph) (builder.Graph) {
+	for _, dependencies := range graph {
+		for _, dependency := range dependencies {
+			if _, exists := graph[dependency]; !exists {
+				graph[dependency] = []string{}
+			}
+		}
+	}
+	return graph
+}
+
+func buildGraphTest(file *os.File) (builder.Graph, error) {
 	graph := make(builder.Graph)
 	scanner := bufio.NewScanner(file)
 	for lineNumber := 1; scanner.Scan(); lineNumber++ {
@@ -42,13 +62,7 @@ func LoadTestRepository(path string) (builder.Graph, error) {
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("read test repository: %w", err)
 	}
-	for _, dependencies := range graph {
-		for _, dependency := range dependencies {
-			if _, exists := graph[dependency]; !exists {
-				graph[dependency] = []string{}
-			}
-		}
-	}
+	graph = fixRepositoryDependencies(graph)
 	return graph, nil
 }
 
