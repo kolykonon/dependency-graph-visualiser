@@ -7,42 +7,39 @@ import (
 
 type WorkMode string
 
-
-
 // ValidationErrors
 var (
-	NameValidationError = errors.New("Name validation failed")
-	URLValidationError = errors.New("URL validation failed")
+	NameValidationError     = errors.New("Name validation failed")
+	URLValidationError      = errors.New("URL validation failed")
 	WorkModeValidationError = errors.New("Restricted value to param: work_mode, appropriate values: testing, production")
 	FilenameValidationError = errors.New("Restricted name of file")
-	PathValidationError = errors.New("Path validation failed")
+	PathValidationError     = errors.New("Path validation failed")
 )
-
 
 // WorkMode values
 const (
-	WorkModeTesting WorkMode = "testing"
+	WorkModeTesting    WorkMode = "testing"
 	WorkModeProduction WorkMode = "production"
 )
 
-
 // Regexes to validate fields
 var (
-	nameRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9+.-]+$`)
-	urlRegex = regexp.MustCompile(`^https?://[^/\s]+/ubuntu/dists/[a-z][a-z0-9.-]*/(main|universe|restricted|multiverse)/binary-[a-z0-9-]+/Packages(\.gz)?$`)
+	nameRegex     = regexp.MustCompile(`^[a-z0-9][a-z0-9+.-]*$`)
+	testNameRegex = regexp.MustCompile(`^[A-Z]$`)
+	urlRegex      = regexp.MustCompile(`^https?://[^/\s]+/ubuntu/dists/[a-z][a-z0-9.-]*/(main|universe|restricted|multiverse)/binary-[a-z0-9-]+/Packages(\.gz)?$`)
 	filenameRegex = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*\.png$`)
-	pathRegex = regexp.MustCompile(`^(/[^/]+)+/?$`)
+	pathRegex     = regexp.MustCompile(`^(/[^/]+)+/?$`)
 )
 
 type Params struct {
-	Name string 
-	URL string
-	Mode WorkMode
+	Name     string
+	URL      string
+	Mode     WorkMode
 	Filename string
 }
 
-func validateName(name string) (string, error) {
-	if nameRegex.MatchString(name) {
+func validateName(name string, mode WorkMode) (string, error) {
+	if (mode == WorkModeTesting && testNameRegex.MatchString(name)) || (mode == WorkModeProduction && nameRegex.MatchString(name)) {
 		return name, nil
 	}
 	return "", NameValidationError
@@ -84,32 +81,30 @@ func validateFilename(filename string) (string, error) {
 	return "", FilenameValidationError
 }
 
-
 func NewParams(name string, url string, mode string, filename string) (*Params, error) {
-	name, err := validateName(name)
-	if err != nil {
-		return &Params{}, err
-	}
-
 	workMode, err := validateMode(mode)
 	if err != nil {
 		return nil, err
 	}
-	
+	name, err = validateName(name, workMode)
+	if err != nil {
+		return &Params{}, err
+	}
+
 	url, err = validateURL(url, workMode)
 	if err != nil {
 		return nil, err
 	}
-	
-	filename, err = validateFilename(filename) 
+
+	filename, err = validateFilename(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Params{
-		Name: name,
-		URL: url,
-		Mode: workMode,
+		Name:     name,
+		URL:      url,
+		Mode:     workMode,
 		Filename: filename,
 	}, nil
 }

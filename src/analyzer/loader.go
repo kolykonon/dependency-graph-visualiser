@@ -27,7 +27,7 @@ func downloadPackageArchive(url, outFolder string) (string, error) {
 	path := filepath.Join(outFolder, "Packages.gz")
 
 	if info, err := os.Stat(path); err == nil && info.Size() > 0 {
-		return path, nil // используем кэш
+		return path, nil // take from cache
 	} else if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("check cache: %w", err)
 	}
