@@ -1,0 +1,5 @@
+go run ./src/cmd/visualiser bash \
+"https://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/Packages.gz" \
+production bash.svg
+
+go run ./src/cmd/visualiser A "$PWD/examples/three_packages.txt" testing package-a.svg   
